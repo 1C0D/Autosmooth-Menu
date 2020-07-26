@@ -24,7 +24,7 @@ import bpy
 bl_info = {
     "name": " Autosmooth Menu",
     "author": "1COD",
-    "version": (1, 8, 1),
+    "version": (1, 8, 2),
     "blender": (2, 83, 0),
     "location": "View3D",
     "description": "Autosmooth menu, Alt X",
@@ -33,15 +33,6 @@ bl_info = {
     "category": "Menu"
 }
 
-
-# def x_ray_charles(context):
-
-# if context.space_data.shading.type == 'WIREFRAME':
-# if context.scene.show_xray is False:
-# context.space_data.shading.show_xray_wireframe = True
-
-# else:
-# context.space_data.shading.show_xray = True
 
 
 ################################# Faces Orientation
@@ -346,9 +337,9 @@ class VEF_OT_toggle(bpy.types.Operator):
     bl_idname = "vef.toggle"
     bl_label = "verts/edg/faces toggle"
 
-    @classmethod
-    def poll(cls, context):
-        return context.active_object is not None
+    # @classmethod
+    # def poll(cls, context):
+        # return context.active_object is not None
 
     def execute(self, context):
 
@@ -926,7 +917,7 @@ class AUTOSMOOTH_PT_Menu(bpy.types.Panel):
             row.prop(context.scene, "show_faces_orientation",
                      text="", icon='EVENT_O', toggle=True)
             row.prop(context.scene, "toggle_shading",
-                     text="", icon='URL', toggle=True)
+                     text="", icon='SHADING_WIRE', toggle=True)
             row.prop(context.scene, "show_xray", text="", icon='XRAY')
             if context.scene.show_xray:
                 sub = row.row()
@@ -959,7 +950,7 @@ class AUTOSMOOTH_PT_Menu(bpy.types.Panel):
             row.prop(context.scene, "show_faces_orientation",
                      text="", icon='EVENT_O', toggle=True)
             row.prop(context.scene, "toggle_shading",
-                     text="", icon='URL', toggle=True)
+                     text="", icon='SHADING_WIRE', toggle=True)
             row.prop(context.scene, "show_xray", text="", icon='XRAY')
             if context.scene.show_xray:
                 sub = row.row()
@@ -1085,7 +1076,7 @@ class AUTOSMOOTH_PT_Menu(bpy.types.Panel):
             row.prop(context.scene, "show_faces_orientation",
                      text="", icon='EVENT_O', toggle=True)
             row.prop(context.scene, "toggle_shading",
-                     text="", icon='URL', toggle=True)
+                     text="", icon='SHADING_WIRE', toggle=True)
             row.prop(context.scene, "show_xray", text="", icon='XRAY')
             if context.scene.show_xray:
                 sub = row.row()
