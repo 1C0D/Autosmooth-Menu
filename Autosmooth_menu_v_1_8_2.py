@@ -24,7 +24,7 @@ import bpy
 bl_info = {
     "name": " Autosmooth Menu",
     "author": "1COD",
-    "version": (1, 8, 2),
+    "version": (1, 8, 3),
     "blender": (2, 83, 0),
     "location": "View3D",
     "description": "Autosmooth menu, Alt X",
@@ -33,9 +33,8 @@ bl_info = {
     "category": "Menu"
 }
 
+# Faces Orientation
 
-
-################################# Faces Orientation
 
 def get_face_orientation(self):
 
@@ -61,17 +60,23 @@ bpy.types.Scene.show_faces_orientation = bpy.props.BoolProperty(
     update=update_face_orientation
 )
 
-################################# Shadesmooth
+# Shadesmooth
 
 
 def get_smooth(self):
 
-    return (bpy.context.object.data.polygons[0].use_smooth)
+    for e in bpy.context.selected_objects:
+        for poly in e.data.polygons:
+            if poly.use_smooth is False:
+                return poly.use_smooth
+    return True
 
 
 def set_smooth(self, value):
 
-    bpy.context.object.data.polygons[0].use_smooth = value
+    for e in bpy.context.selected_objects:
+        for poly in e.data.polygons:
+            poly.use_smooth = value
 
 
 def update_smooth(self, context):
@@ -88,24 +93,28 @@ bpy.types.Scene.shadesmooth_toggle = bpy.props.BoolProperty(
     description="Shade Flat/Smooth toggle"
 )
 
-################################# Autosmooth
+# Autosmooth
 
 
 def get_autosmooth(self):
 
-    return (bpy.context.object.data.use_auto_smooth)
+    for e in bpy.context.selected_objects:
+        if e.data.use_auto_smooth is False:
+            return e.data.use_auto_smooth
+    return True
 
 
 def set_autosmooth(self, value):
 
-    bpy.context.object.data.use_auto_smooth = value
+    for e in bpy.context.selected_objects:
+        e.data.use_auto_smooth = value
 
 
 def update_autosmooth(self, context):
 
     for e in context.selected_objects:
 
-        # dont need to set if context.object because by default autosmooth do it
+        # dont need to set if context.object because by default autosmooth does it
         e.data.use_auto_smooth = bool(context.scene.autosmooth_toggle)
 
 
@@ -115,7 +124,7 @@ bpy.types.Scene.autosmooth_toggle = bpy.props.BoolProperty(
     update=update_autosmooth
 )
 
-################################# Autosmooth Angle
+# Autosmooth Angle
 
 
 def get_autosmoothangle(self):
@@ -139,12 +148,12 @@ def update_autosmoothangle(self, context):
 bpy.types.Scene.Temp = bpy.props.FloatProperty(
     default=30, min=0, max=180, precision=1)
 bpy.types.Scene.autosmoothangle = bpy.props.FloatProperty(default=30, min=0, max=180,
-    precision=1,
-    get=get_autosmoothangle,
-    set=set_autosmoothangle,
-    update=update_autosmoothangle)
+                                                          precision=1,
+                                                          get=get_autosmoothangle,
+                                                          set=set_autosmoothangle,
+                                                          update=update_autosmoothangle)
 
-################################# Overlay toggle
+# Overlay toggle
 
 
 def get_overlay_toggle(self):
@@ -169,7 +178,7 @@ bpy.types.Scene.overlays_toggle = bpy.props.BoolProperty(
     update=update_overlay_toggle
 )
 
-################################# Wireframe toggle
+# Wireframe toggle
 
 
 def get_wireframe_toggle(self):
@@ -196,7 +205,7 @@ bpy.types.Scene.show_wireframes = bpy.props.BoolProperty(
 )
 
 
-################################# Xray toggle
+# Xray toggle
 
 def get_xray_toggle(self):
 
@@ -269,7 +278,7 @@ bpy.types.Scene.xray_alpha = FloatProperty(
     precision=1
 )
 
-################################# Normals Out/IN
+# Normals Out/IN
 
 
 def update_orientnormal(self, context):
@@ -285,7 +294,7 @@ bpy.types.Scene.orientnormal = bpy.props.BoolProperty(
     default=False, update=update_orientnormal)
 bpy.types.Scene.checkboxnormals = bpy.props.BoolProperty()
 
-################################# select/unselect
+# select/unselect
 
 
 def get_select(self):
@@ -330,16 +339,12 @@ bpy.types.Scene.select_toggle = bpy.props.BoolProperty(
     update=update_select
 )
 
-################################# Vertex/E/F toggle
+# Vertex/E/F toggle
 
 
 class VEF_OT_toggle(bpy.types.Operator):
     bl_idname = "vef.toggle"
     bl_label = "verts/edg/faces toggle"
-
-    # @classmethod
-    # def poll(cls, context):
-        # return context.active_object is not None
 
     def execute(self, context):
 
@@ -354,7 +359,7 @@ class VEF_OT_toggle(bpy.types.Operator):
 
         return {'FINISHED'}
 
-################################# Unmark all
+# Unmark all
 
 
 class UNMARK_OT_All(bpy.types.Operator):
@@ -378,7 +383,7 @@ class UNMARK_OT_All(bpy.types.Operator):
 
         return {'FINISHED'}
 
-################################# non manifold
+# non manifold
 
 
 class NON_OT_MANIFOLD(bpy.types.Operator):
@@ -399,9 +404,9 @@ class NON_OT_MANIFOLD(bpy.types.Operator):
         context.space_data.shading.show_xray_wireframe = True
 
         return {'FINISHED'}
-        
 
-################################# toggle shading
+
+# toggle shading
 
 def get_toggle_shading(self):
 
@@ -425,7 +430,7 @@ bpy.types.Scene.toggle_shading = bpy.props.BoolProperty(
     update=update_toggle_shading)
 
 
-################################# Edge Split sculpt
+# Edge Split sculpt
 
 def update_edgesplit(self, context):
 
@@ -451,7 +456,7 @@ bpy.types.Scene.edgesplit_toggle = bpy.props.BoolProperty(
     description='add edgesplit set by autosmooth angle'
 )
 
-################################# Sharpangle select
+# Sharpangle select
 
 
 def update_sharpangle(self, context):
@@ -539,7 +544,7 @@ def update_markseam(self, context):
         context.scene.markbevel = False
         context.scene.marksharp = False
         context.scene.markcrease = False
-        
+
 
 def update_bevelWeight(self, context):
 
@@ -602,7 +607,7 @@ bpy.types.Scene.markseam = bpy.props.BoolProperty(update=update_markseam)
 bpy.types.Scene.markcrease = bpy.props.BoolProperty(update=update_markcrease)
 
 
-################################# manual
+# manual
 
 def update_marksharp1(self, context):
 
@@ -649,7 +654,7 @@ bpy.types.Scene.markbevel1 = bpy.props.BoolProperty(update=update_markbevel1)
 bpy.types.Scene.markseam1 = bpy.props.BoolProperty(update=update_markseam1)
 bpy.types.Scene.markcrease1 = bpy.props.BoolProperty(update=update_markcrease1)
 
-################################# sel mark
+# sel mark
 
 
 def sel_bevel(self, context):
@@ -809,7 +814,7 @@ bpy.types.Scene.selbevel = bpy.props.BoolProperty(update=sel_bevel)
 bpy.types.Scene.inverseur1 = bpy.props.BoolProperty(update_inverseur1)
 
 
-################################# show more love
+# show more love
 
 def show_more_love(self, context):
     cao = bpy.context.active_object
@@ -872,7 +877,7 @@ bpy.types.Scene.love = bpy.props.BoolProperty(
 )
 
 
-################################# Panel
+# Panel
 
 class AUTOSMOOTH_PT_Menu(bpy.types.Panel):
     bl_label = "Autosmooth menu"
@@ -1124,6 +1129,7 @@ class ASM_addonPrefs(bpy.types.AddonPreferences):
 
 addon_keymaps = []
 
+
 def draw_keymap_items(kc, layout):
 
     for name, items in keymaps_items_dict.items():
@@ -1260,7 +1266,9 @@ class TEMPLATE_OT_Add_Hotkey(bpy.types.Operator):
                     "Hotkey added in User Preferences -> Input -> Screen -> Screen (Global)")
         return {'FINISHED'}
 
-#N.B: x_keymaps parameter, allows to have several maps used for mutliple hotkeys config...
+# N.B: x_keymaps parameter, allows to have several maps used for mutliple hotkeys config...
+
+
 def add_hotkey(kc, x_keymaps):
 
     if not kc:
