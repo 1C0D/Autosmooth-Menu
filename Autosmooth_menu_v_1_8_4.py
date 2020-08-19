@@ -21,10 +21,11 @@ from math import radians, degrees
 import bmesh
 import rna_keymap_ui
 import bpy
+
 bl_info = {
     "name": " Autosmooth Menu",
     "author": "1COD",
-    "version": (1, 8, 3),
+    "version": (1, 8, 4),
     "blender": (2, 83, 0),
     "location": "View3D",
     "description": "Autosmooth menu, Alt X",
@@ -33,9 +34,8 @@ bl_info = {
     "category": "Menu"
 }
 
+
 # Faces Orientation
-
-
 def get_face_orientation(self):
 
     return bpy.context.space_data.overlay.show_face_orientation
@@ -44,12 +44,14 @@ def get_face_orientation(self):
 def set_face_orientation(self, value):
 
     pass
-    # context.space_data.overlay.show_face_orientation=value
 
 
 def update_face_orientation(self, context):
 
     context.space_data.overlay.show_overlays = True
+    context.space_data.shading.show_xray_wireframe = False
+    context.space_data.shading.show_xray = False
+
     context.space_data.overlay.show_face_orientation = not bool(
         context.scene.show_faces_orientation)
 
@@ -60,15 +62,18 @@ bpy.types.Scene.show_faces_orientation = bpy.props.BoolProperty(
     update=update_face_orientation
 )
 
+
 # Shadesmooth
-
-
 def get_smooth(self):
 
     for e in bpy.context.selected_objects:
         for poly in e.data.polygons:
             if poly.use_smooth is False:
                 return poly.use_smooth
+
+    if not bpy.context.selected_objects:
+        return False
+
     return True
 
 
@@ -83,7 +88,7 @@ def update_smooth(self, context):
 
     for e in context.selected_objects:
         for poly in e.data.polygons:
-            poly.use_smooth = bool(context.scene.shadesmooth_toggle)
+            poly.use_smooth = bool(self.shadesmooth_toggle)
 
 
 bpy.types.Scene.shadesmooth_toggle = bpy.props.BoolProperty(
@@ -93,10 +98,12 @@ bpy.types.Scene.shadesmooth_toggle = bpy.props.BoolProperty(
     description="Shade Flat/Smooth toggle"
 )
 
+
 # Autosmooth
-
-
 def get_autosmooth(self):
+    # possible to enter edit mode with the context object not selected...
+    if bpy.context.object and not bpy.context.selected_objects:
+        return bpy.context.object.data.use_auto_smooth
 
     for e in bpy.context.selected_objects:
         if e.data.use_auto_smooth is False:
@@ -106,16 +113,20 @@ def get_autosmooth(self):
 
 def set_autosmooth(self, value):
 
+    if bpy.context.object and not bpy.context.selected_objects:
+        bpy.context.object.data.use_auto_smooth = value
+
     for e in bpy.context.selected_objects:
         e.data.use_auto_smooth = value
 
 
 def update_autosmooth(self, context):
 
-    for e in context.selected_objects:
+    if context.object and not context.selected_objects:
+        context.object.data.use_auto_smooth = bool(self.autosmooth_toggle)
 
-        # dont need to set if context.object because by default autosmooth does it
-        e.data.use_auto_smooth = bool(context.scene.autosmooth_toggle)
+    for e in context.selected_objects:
+        e.data.use_auto_smooth = bool(self.autosmooth_toggle)
 
 
 bpy.types.Scene.autosmooth_toggle = bpy.props.BoolProperty(
@@ -124,9 +135,8 @@ bpy.types.Scene.autosmooth_toggle = bpy.props.BoolProperty(
     update=update_autosmooth
 )
 
+
 # Autosmooth Angle
-
-
 def get_autosmoothangle(self):
 
     return (round(degrees(bpy.context.object.data.auto_smooth_angle), 1))
@@ -153,9 +163,8 @@ bpy.types.Scene.autosmoothangle = bpy.props.FloatProperty(default=30, min=0, max
                                                           set=set_autosmoothangle,
                                                           update=update_autosmoothangle)
 
+
 # Overlay toggle
-
-
 def get_overlay_toggle(self):
 
     return bpy.context.space_data.overlay.show_overlays
@@ -168,8 +177,10 @@ def set_overlay_toggle(self, value):
 
 def update_overlay_toggle(self, context):
 
+    context.space_data.overlay.show_face_orientation = False
+
     context.space_data.overlay.show_overlays = bool(
-        context.scene.overlays_toggle)
+        self.overlays_toggle)
 
 
 bpy.types.Scene.overlays_toggle = bpy.props.BoolProperty(
@@ -178,9 +189,8 @@ bpy.types.Scene.overlays_toggle = bpy.props.BoolProperty(
     update=update_overlay_toggle
 )
 
+
 # Wireframe toggle
-
-
 def get_wireframe_toggle(self):
 
     return bpy.context.space_data.overlay.show_wireframes
@@ -195,7 +205,7 @@ def update_wireframe_toggle(self, context):
 
     context.space_data.overlay.show_overlays = True
     context.space_data.overlay.show_wireframes = bool(
-        context.scene.show_wireframes)
+        self.show_wireframes)
 
 
 bpy.types.Scene.show_wireframes = bpy.props.BoolProperty(
@@ -206,7 +216,6 @@ bpy.types.Scene.show_wireframes = bpy.props.BoolProperty(
 
 
 # Xray toggle
-
 def get_xray_toggle(self):
 
     if bpy.context.space_data.shading.type == 'WIREFRAME':
@@ -225,12 +234,13 @@ def set_xray_toggle(self, value):
 
 def update_xray_toggle(self, context):
 
+    context.space_data.overlay.show_face_orientation = False
+
     if context.space_data.shading.type == 'WIREFRAME':
-        context.space_data.shading.show_xray_wireframe = bool(
-            context.scene.show_xray)
+        context.space_data.shading.show_xray_wireframe = bool(self.show_xray)
 
     else:
-        context.space_data.shading.show_xray = bool(context.scene.show_xray)
+        context.space_data.shading.show_xray = bool(self.show_xray)
 
 
 bpy.types.Scene.show_xray = bpy.props.BoolProperty(
@@ -240,6 +250,7 @@ bpy.types.Scene.show_xray = bpy.props.BoolProperty(
 )
 
 
+# alpha Xray
 def get_xray_alpha(self):
 
     if bpy.context.space_data.shading.type == 'WIREFRAME':
@@ -278,21 +289,64 @@ bpy.types.Scene.xray_alpha = FloatProperty(
     precision=1
 )
 
-# Normals Out/IN
+
+class TOGGLE_OT_Normals(bpy.types.Operator):
+    """Tooltip"""
+    bl_idname = "toggle.normals_operator"
+    bl_label = "Toggle Normals"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    out_flip: bpy.props.BoolProperty(default=True)
+
+    def execute(self, context):
+
+        faces = []
+
+        if context.selected_objects:
+            objects = [
+                object for object in context.selected_objects if object.type == 'MESH']
+        else:
+            objects = [
+                object for object in context.scene.objects if object.type == 'MESH']
+
+        for object in objects:
+            me = object.data
+            if object.mode == 'EDIT':
+                bm = bmesh.from_edit_mesh(me)
+                for f in bm.faces:
+                    if f.select == True:
+                        faces.append(f)
+                if self.out_flip:
+                    bmesh.ops.recalc_face_normals(bm, faces=faces)  # out
+                else:
+                    bmesh.ops.reverse_faces(
+                        bm, faces=faces, flip_multires=True)  # flip
+                bmesh.update_edit_mesh(me)
+            else:
+                bm = bmesh.new()
+                bm.from_mesh(me)
+                if self.out_flip:
+                    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+                else:
+                    bmesh.ops.reverse_faces(
+                        bm, faces=bm.faces[:], flip_multires=True)
+                bm.to_mesh(me)
+                # trick: something light to update object mode
+                context.scene.tool_settings.use_transform_pivot_point_align ^= True
+                context.scene.tool_settings.use_transform_pivot_point_align ^= True
+
+        return {'FINISHED'}
+
+    def draw(self, context):
+        layout = self.layout
+        if context.mode == 'EDIT_MESH':
+            text = '> normals out' if self.out_flip else '> flip normals'
+        if context.object.mode == 'OBJECT':
+            text = '> all normals out' if self.out_flip else '> flip all normals'
+        layout.prop(self, "out_flip", text=text)
 
 
-def update_orientnormal(self, context):
-
-    if context.scene.orientnormal:
-        bpy.ops.mesh.normals_make_consistent(inside=False)
-
-    else:
-        bpy.ops.mesh.normals_make_consistent(inside=True)
-
-
-bpy.types.Scene.orientnormal = bpy.props.BoolProperty(
-    default=False, update=update_orientnormal)
-bpy.types.Scene.checkboxnormals = bpy.props.BoolProperty()
+bpy.types.Scene.checkboxnormals = bpy.props.BoolProperty()  # for the panel
 
 # select/unselect
 
@@ -319,14 +373,14 @@ def update_select(self, context):
 
     if bpy.context.mode == 'EDIT_MESH':
 
-        if context.scene.select_toggle:
+        if self.select_toggle:
 
             bpy.ops.mesh.select_all(action='DESELECT')
         else:
             bpy.ops.mesh.select_all(action='SELECT')
 
     else:
-        if context.scene.select_toggle:
+        if self.select_toggle:
 
             bpy.ops.object.select_all(action='DESELECT')
         else:
@@ -339,9 +393,8 @@ bpy.types.Scene.select_toggle = bpy.props.BoolProperty(
     update=update_select
 )
 
+
 # Vertex/E/F toggle
-
-
 class VEF_OT_toggle(bpy.types.Operator):
     bl_idname = "vef.toggle"
     bl_label = "verts/edg/faces toggle"
@@ -359,33 +412,8 @@ class VEF_OT_toggle(bpy.types.Operator):
 
         return {'FINISHED'}
 
-# Unmark all
-
-
-class UNMARK_OT_All(bpy.types.Operator):
-    bl_idname = "unmark.all"
-    bl_label = "Clear all marks"
-
-    @classmethod
-    def poll(cls, context):
-        return context.active_object is not None
-
-    def execute(self, context):
-
-        bpy.ops.mesh.select_all(action='SELECT')
-        bpy.ops.mesh.mark_sharp(clear=True)
-        bpy.ops.transform.edge_bevelweight(value=-1)
-        bpy.ops.transform.edge_crease(value=-1)
-        bpy.ops.mesh.mark_seam(clear=True)
-        if context.scene.inverseur == True:
-            context.scene.inverseur = False
-        bpy.ops.mesh.select_all(action='DESELECT')
-
-        return {'FINISHED'}
 
 # non manifold
-
-
 class NON_OT_MANIFOLD(bpy.types.Operator):
     """select non manifold auto edge"""
     bl_idname = "non.manifold"
@@ -398,7 +426,7 @@ class NON_OT_MANIFOLD(bpy.types.Operator):
     def execute(self, context):
 
         bpy.ops.mesh.select_all(action='DESELECT')
-        context.tool_settings.mesh_select_mode = (True, True, False)
+        context.tool_settings.mesh_select_mode = (False, True, False)
         bpy.ops.mesh.select_non_manifold()
         context.space_data.shading.type = 'WIREFRAME'
         context.space_data.shading.show_xray_wireframe = True
@@ -407,7 +435,6 @@ class NON_OT_MANIFOLD(bpy.types.Operator):
 
 
 # toggle shading
-
 def get_toggle_shading(self):
 
     return bpy.context.space_data.shading.type == 'WIREFRAME'
@@ -431,10 +458,9 @@ bpy.types.Scene.toggle_shading = bpy.props.BoolProperty(
 
 
 # Edge Split sculpt
-
 def update_edgesplit(self, context):
 
-    if context.scene.edgesplit_toggle:
+    if self.edgesplit_toggle:
 
         cao = bpy.context.active_object
 
@@ -456,9 +482,50 @@ bpy.types.Scene.edgesplit_toggle = bpy.props.BoolProperty(
     description='add edgesplit set by autosmooth angle'
 )
 
+
+# Unmark all
+class UNMARK_OT_All(bpy.types.Operator):
+    bl_idname = "unmark.all"
+    bl_label = "Clear all marks"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    ex_sharp: BoolProperty(default=True, name="sharp")
+    ex_bvl: BoolProperty(default=True, name="bevel")
+    ex_crs: BoolProperty(default=True, name="crease")
+    ex_seam: BoolProperty(default=True, name="seam")
+
+    @classmethod
+    def poll(cls, context):
+        return context.active_object is not None
+
+    def execute(self, context):
+
+        for obj in context.selected_objects:
+            me = obj.data
+            bm = bmesh.from_edit_mesh(me)
+            bv = bm.edges.layers.bevel_weight.verify()
+            cr = bm.edges.layers.crease.verify()
+
+            for e in bm.edges:
+                if self.ex_sharp:
+                    if not e.smooth:
+                        e.smooth = True
+                if self.ex_bvl:
+                    if e[bv] > 0:
+                        e[bv] = 0
+                if self.ex_crs:
+                    if e[cr] > 0:
+                        e[cr] = 0
+                if self.ex_seam:
+                    if e.seam:
+                        e.seam = False
+
+            bmesh.update_edit_mesh(me, False)
+
+        return {'FINISHED'}
+
+
 # Sharpangle select
-
-
 def update_sharpangle(self, context):
 
     update_markbevel(self, context)
@@ -478,7 +545,7 @@ def selectsharpedge(self, context):
 
 def update_inverseur(self, context):
 
-    if context.scene.inverseur == True:
+    if self.inverseur == True:
         bpy.ops.mesh.select_all(action='INVERT')
     if bpy.context.scene.sharpangle == 0.0:
         bpy.ops.mesh.select_all(action='DESELECT')
@@ -488,7 +555,7 @@ def update_inverseur(self, context):
 
 def update_marksharp(self, context):
 
-    if context.scene.marksharp == True:
+    if self.marksharp == True:
         bpy.ops.mesh.mark_sharp(clear=True)
         bpy.ops.mesh.select_all(action='DESELECT')
         bpy.ops.mesh.edges_select_sharp(
@@ -503,7 +570,7 @@ def update_marksharp(self, context):
 
 def update_markbevel(self, context):
 
-    if context.scene.markbevel == True:
+    if self.markbevel == True:
         bpy.ops.transform.edge_bevelweight(value=-1)
         bpy.ops.mesh.select_all(action='DESELECT')
         bpy.ops.mesh.edges_select_sharp(
@@ -518,7 +585,7 @@ def update_markbevel(self, context):
 
 def update_markcrease(self, context):
 
-    if context.scene.markcrease == True:
+    if self.markcrease == True:
         bpy.ops.transform.edge_crease(value=-1)
         bpy.ops.mesh.select_all(action='DESELECT')
         bpy.ops.mesh.edges_select_sharp(
@@ -533,7 +600,7 @@ def update_markcrease(self, context):
 
 def update_markseam(self, context):
 
-    if context.scene.markseam == True:
+    if self.markseam == True:
         bpy.ops.mesh.mark_seam(clear=True)
         bpy.ops.mesh.select_all(action='DESELECT')
         bpy.ops.mesh.edges_select_sharp(
@@ -600,7 +667,7 @@ bpy.types.Scene.sharpangle = bpy.props.FloatProperty(
     default=180, min=0, max=180, precision=2,
     update=update_sharpangle
 )
-bpy.types.Scene.inverseur = bpy.props.BoolProperty(update_inverseur)
+bpy.types.Scene.inverseur = bpy.props.BoolProperty(update=update_inverseur)
 bpy.types.Scene.marksharp = bpy.props.BoolProperty(update=update_marksharp)
 bpy.types.Scene.markbevel = bpy.props.BoolProperty(update=update_markbevel)
 bpy.types.Scene.markseam = bpy.props.BoolProperty(update=update_markseam)
@@ -608,10 +675,9 @@ bpy.types.Scene.markcrease = bpy.props.BoolProperty(update=update_markcrease)
 
 
 # manual
-
 def update_marksharp1(self, context):
 
-    if context.scene.marksharp1 == True:
+    if self.marksharp1 == True:
 
         context.scene.markbevel1 = False
         context.scene.markseam1 = False
@@ -620,7 +686,7 @@ def update_marksharp1(self, context):
 
 def update_markbevel1(self, context):
 
-    if context.scene.markbevel1 == True:
+    if self.markbevel1 == True:
 
         update_bevelWeight(self, context)
 
@@ -631,7 +697,7 @@ def update_markbevel1(self, context):
 
 def update_markcrease1(self, context):
 
-    if context.scene.markcrease1 == True:
+    if self.markcrease1 == True:
 
         update_edgeCrease(self, context)
 
@@ -642,7 +708,7 @@ def update_markcrease1(self, context):
 
 def update_markseam1(self, context):
 
-    if context.scene.markseam1 == True:
+    if self.markseam1 == True:
 
         context.scene.markbevel1 = False
         context.scene.marksharp1 = False
@@ -654,41 +720,47 @@ bpy.types.Scene.markbevel1 = bpy.props.BoolProperty(update=update_markbevel1)
 bpy.types.Scene.markseam1 = bpy.props.BoolProperty(update=update_markseam1)
 bpy.types.Scene.markcrease1 = bpy.props.BoolProperty(update=update_markcrease1)
 
-# sel mark
 
-
+# sel marked edges
 def sel_bevel(self, context):
 
     if context.scene.selbevel == True:
 
-        obj = bpy.context.object
-        me = obj.data
-        bm = bmesh.from_edit_mesh(me)
-        bv = bm.edges.layers.bevel_weight.verify()
-        bpy.ops.mesh.select_all(action='DESELECT')
-
-        for e in bm.edges:
-
-            if context.scene.inverseur1 == False:
-
-                if e[bv] >= context.scene.threshold_bevel_select and e[bv] > 0:
-
-                    e.select = True
-                else:
-                    e.select = False
-            else:
-                if e[bv] <= context.scene.threshold_bevel_select and e[bv] > 0:
-
-                    e.select = True
-                else:
-                    e.select = False
-
-        bmesh.update_edit_mesh(me, False, False)
-
         context.scene.selsharp = False
         context.scene.selseam = False
         context.scene.selcrease = False
+        context.scene.inverseur1 = True
 
+        obj = bpy.context.object
+        for obj in context.selected_objects:
+            me = obj.data
+            bm = bmesh.from_edit_mesh(me)
+            bv = bm.edges.layers.bevel_weight.verify()
+
+            for v in bm.verts:
+                v.select = False
+            bm.select_flush_mode()
+
+            for e in bm.edges:
+
+                if context.scene.inverseur1 == False:
+
+                    if e[bv] >= context.scene.threshold_bevel_select and e[bv] > 0:
+
+                        e.select = True
+                    else:
+                        e.select = False
+                else:
+                    if e[bv] <= context.scene.threshold_bevel_select and e[bv] > 0:
+
+                        e.select = True
+                    else:
+                        e.select = False
+
+            bmesh.update_edit_mesh(me, False, False)
+
+
+bpy.types.Scene.selbevel = bpy.props.BoolProperty(update=sel_bevel)
 
 bpy.types.Scene.threshold_bevel_select = bpy.props.FloatProperty(
     description="Set threshold of bevel selection",
@@ -705,33 +777,35 @@ def sel_crease(self, context):
 
     if context.scene.selcrease == True:
 
-        obj = bpy.context.object
-        me = obj.data
-        bm = bmesh.from_edit_mesh(me)
-        cr = bm.edges.layers.crease.verify()
-        bpy.ops.mesh.select_all(action='DESELECT')
-
-        for e in bm.edges:
-            if context.scene.inverseur1 == False:
-
-                if e[cr] >= context.scene.threshold_crease_select and e[cr] > 0:
-
-                    e.select = True
-                else:
-                    e.select = False
-            else:
-                if e[cr] <= context.scene.threshold_crease_select and e[cr] > 0:
-
-                    e.select = True
-                else:
-                    e.select = False
-
-        bmesh.update_edit_mesh(me, False, False)
-
         context.scene.selbevel = False
         context.scene.selsharp = False
         context.scene.selseam = False
 
+        for obj in context.selected_objects:
+            me = obj.data
+            bm = bmesh.from_edit_mesh(me)
+            cr = bm.edges.layers.crease.verify()
+
+            for e in bm.edges:
+                if context.scene.inverseur1 == False:
+
+                    if e[cr] >= self.threshold_crease_select and e[cr] > 0:
+
+                        e.select = True
+                    else:
+                        e.select = False
+                else:
+                    if e[cr] <= self.threshold_crease_select and e[cr] > 0:
+
+                        e.select = True
+                    else:
+                        e.select = False
+
+            bmesh.update_edit_mesh(me, False, False)
+
+
+bpy.types.Scene.selcrease = bpy.props.BoolProperty(
+    update=sel_crease)  # bizarre
 
 bpy.types.Scene.threshold_crease_select = bpy.props.FloatProperty(
     description="Set threshold of crease selection",
@@ -746,39 +820,57 @@ bpy.types.Scene.threshold_crease_select = bpy.props.FloatProperty(
 
 def sel_sharp(self, context):
 
-    if context.scene.selsharp == True:
-        obj = bpy.context.edit_object
-        me = obj.data
-        bm = bmesh.from_edit_mesh(me)
-
-        for e in bm.edges:
-            if not e.smooth:
-                e.select = True
-
-        bmesh.update_edit_mesh(me, False)
-
+    if self.selsharp == True:
         context.scene.selbevel = False
         context.scene.selseam = False
         context.scene.selcrease = False
+
+        for obj in context.selected_objects:
+            me = obj.data
+            bm = bmesh.from_edit_mesh(me)
+
+            # bm.select_mode = {'VERT'}
+            for v in bm.verts:
+                v.select = False
+            bm.select_flush_mode()
+
+            for e in bm.edges:
+                if not e.smooth:
+                    e.select = True
+
+            # bm.select_mode = {'EDGE'}
+
+            bmesh.update_edit_mesh(me, False)
+
+
+bpy.types.Scene.selsharp = bpy.props.BoolProperty(update=sel_sharp)
 
 
 def sel_seam(self, context):
 
     if context.scene.selseam == True:
 
-        obj = bpy.context.object
-        me = obj.data
-        bm = bmesh.from_edit_mesh(me)
+        context.scene.selbevel = False
+        context.scene.selsharp = False
+        context.scene.selcrease = False
 
-        for e in bm.edges:
-            if e.seam:
-                e.select = True
+        for obj in context.selected_objects:
+            me = obj.data
+            bm = bmesh.from_edit_mesh(me)
 
-    bmesh.update_edit_mesh(me, False)
+            # bm.select_mode = {'VERT'}
+            for v in bm.verts:
+                v.select = False
+            bm.select_flush_mode()
 
-    context.scene.selbevel = False
-    context.scene.selsharp = False
-    context.scene.selcrease = False
+            for e in bm.edges:
+                if e.seam:
+                    e.select = True
+
+            bmesh.update_edit_mesh(me, False)
+
+
+bpy.types.Scene.selseam = bpy.props.BoolProperty(update=sel_seam)
 
 
 def update_inverseur1(self, context):
@@ -789,6 +881,8 @@ def update_inverseur1(self, context):
         bpy.ops.mesh.select_all(action='INVERT')
 
 
+bpy.types.Scene.inverseur1 = bpy.props.BoolProperty(update=update_inverseur1)
+
 edge_select_mode = [
     ("0", "Disabled", "OFF"),
     ("1", "Mark by angle", "Select & Mark edges by angle"),
@@ -798,7 +892,17 @@ edge_select_mode = [
 
 
 def update_enum(self, context):
-    pass
+
+    if context.scene.enum_select == "3":
+
+        if context.scene.selcrease:
+            sel_crease(self, context)
+        if context.scene.selbevel:
+            sel_bevel(self, context)
+        if context.scene.selseam:
+            sel_seam(self, context)
+        if context.scene.selsharp:
+            sel_sharp(self, context)
 
 
 bpy.types.Scene.enum_select = bpy.props.EnumProperty(
@@ -807,11 +911,6 @@ bpy.types.Scene.enum_select = bpy.props.EnumProperty(
     items=edge_select_mode,
     update=update_enum
 )
-bpy.types.Scene.selseam = bpy.props.BoolProperty(update=sel_seam)
-bpy.types.Scene.selcrease = bpy.props.BoolProperty(update=sel_crease)
-bpy.types.Scene.selsharp = bpy.props.BoolProperty(update=sel_sharp)
-bpy.types.Scene.selbevel = bpy.props.BoolProperty(update=sel_bevel)
-bpy.types.Scene.inverseur1 = bpy.props.BoolProperty(update_inverseur1)
 
 
 # show more love
@@ -896,6 +995,7 @@ class AUTOSMOOTH_PT_Menu(bpy.types.Panel):
             row = layout.row()
             row.label(text="Object Mode")
             row.scale_y = 0.8
+            # row.prop(context.scene, "love", text="", icon='HEART')
             row.operator("object.editmode_toggle",
                          text="", icon='ARROW_LEFTRIGHT')
             label = "Shade Smooth ON" if context.scene.shadesmooth_toggle else "Shade Smooth OFF"
@@ -932,6 +1032,16 @@ class AUTOSMOOTH_PT_Menu(bpy.types.Panel):
 
             row.prop(context.scene, "overlays_toggle", text="", icon='OVERLAY')
             row.prop(context.scene, "show_wireframes", text="", icon='EVENT_W')
+            row = layout.row(align=True)
+            row.prop(context.scene, "checkboxnormals",
+                     text="Recalculate Normals")  # , description="no selection=whole scene")
+            if context.scene.checkboxnormals == True:
+                op = row.operator("toggle.normals_operator",
+                                  text="Normals OUT")
+                op.out_flip = True
+                op1 = row.operator("toggle.normals_operator",
+                                   icon='FILE_REFRESH', text="Flip")
+                op1.out_flip = False
 
         elif obj.mode in {'SCULPT'}:
             obj_data = context.active_object.data
@@ -1049,7 +1159,7 @@ class AUTOSMOOTH_PT_Menu(bpy.types.Panel):
                     row.operator("mesh.mark_sharp",
                                  text="Sharp OFF").clear = True
                 if context.scene.markseam1:
-                    row.scale_y = 0.7
+                    row.scale_x = 0.7
                     row.operator("mesh.mark_seam",
                                  text="Seam ON").clear = False
                     row.operator("mesh.mark_seam",
@@ -1093,12 +1203,14 @@ class AUTOSMOOTH_PT_Menu(bpy.types.Panel):
             row.prop(context.scene, "checkboxnormals",
                      text="Recalculate Normals")
             if context.scene.checkboxnormals == True:
-                row.operator("mesh.flip_normals", text="", icon='FILE_REFRESH')
-                label2 = "Normals OUT" if context.scene.orientnormal else "Normals IN"
-                row.prop(context.scene, "orientnormal",
-                         text=label2, toggle=True)
+                op = row.operator("toggle.normals_operator",
+                                  text="Normals OUT")
+                op.out_flip = True
+                op1 = row.operator("toggle.normals_operator",
+                                   icon='FILE_REFRESH', text='Flip')
+                op1.out_flip = False
 
-#-----------------------------------------hotkey---------------------------------------------#
+#-----------------------------------------addon prefs-hotkey-reg-------------------------------------------#
 
 
 keymaps_items_dict = {
@@ -1118,7 +1230,6 @@ class ASM_addonPrefs(bpy.types.AddonPreferences):
         box = layout.box()
         split = box.split()
         col = split.column()
-        # Layout ---------------------------------------------------------------- #
         col.label(text="Autosmooth menu: default key Alt X")
         col.label(text="Object/Edit/Sculpt Modes")
 
@@ -1251,24 +1362,6 @@ def get_hotkey_entry_item(kc, km, kmi_name, kmi_value, col):
             col.operator(TEMPLATE_OT_Add_Hotkey.bl_idname, icon='ADD')
 
 
-class TEMPLATE_OT_Add_Hotkey(bpy.types.Operator):
-    ''' Add hotkey entry '''
-    bl_idname = "template.add_hotkey"
-    bl_label = "Add Hotkeys"
-    bl_options = {'REGISTER', 'INTERNAL'}
-
-    def execute(self, context):
-        wm = bpy.context.window_manager
-        kc = wm.keyconfigs.user  # user
-        add_hotkey(kc, addon_keymaps)
-
-        self.report({'INFO'},
-                    "Hotkey added in User Preferences -> Input -> Screen -> Screen (Global)")
-        return {'FINISHED'}
-
-# N.B: x_keymaps parameter, allows to have several maps used for mutliple hotkeys config...
-
-
 def add_hotkey(kc, x_keymaps):
 
     if not kc:
@@ -1316,13 +1409,30 @@ def remove_hotkey(x_keymaps):
     x_keymaps.clear()
 
 
+class TEMPLATE_OT_Add_Hotkey(bpy.types.Operator):
+    ''' Add hotkey entry '''
+    bl_idname = "template.add_hotkey"
+    bl_label = "Add Hotkeys"
+    bl_options = {'REGISTER', 'INTERNAL'}
+
+    def execute(self, context):
+        wm = bpy.context.window_manager
+        kc = wm.keyconfigs.user  # user
+        add_hotkey(kc, addon_keymaps)
+
+        self.report({'INFO'},
+                    "Hotkey added in User Preferences -> Input -> Screen -> Screen (Global)")
+        return {'FINISHED'}
+
+
 classes = (
     AUTOSMOOTH_PT_Menu,
     VEF_OT_toggle,
     UNMARK_OT_All,
     NON_OT_MANIFOLD,
     ASM_addonPrefs,
-    TEMPLATE_OT_Add_Hotkey
+    TEMPLATE_OT_Add_Hotkey,
+    TOGGLE_OT_Normals
 )
 
 
