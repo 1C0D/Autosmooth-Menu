@@ -311,29 +311,18 @@ class TOGGLE_OT_Normals(bpy.types.Operator):
 
         for object in objects:
             me = object.data
-            if object.mode == 'EDIT':
-                bm = bmesh.from_edit_mesh(me)
-                for f in bm.faces:
-                    if f.select == True:
-                        faces.append(f)
-                if self.out_flip:
-                    bmesh.ops.recalc_face_normals(bm, faces=faces)  # out
-                else:
-                    bmesh.ops.reverse_faces(
-                        bm, faces=faces, flip_multires=True)  # flip
-                bmesh.update_edit_mesh(me)
+
+            bm = bmesh.new()
+            bm.from_mesh(me)
+            if self.out_flip:
+                bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
             else:
-                bm = bmesh.new()
-                bm.from_mesh(me)
-                if self.out_flip:
-                    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
-                else:
-                    bmesh.ops.reverse_faces(
-                        bm, faces=bm.faces[:], flip_multires=True)
-                bm.to_mesh(me)
-                # trick: something light to update object mode
-                context.scene.tool_settings.use_transform_pivot_point_align ^= True
-                context.scene.tool_settings.use_transform_pivot_point_align ^= True
+                bmesh.ops.reverse_faces(
+                    bm, faces=bm.faces[:], flip_multires=True)
+            bm.to_mesh(me)
+            # trick: something light to update object mode
+            context.scene.tool_settings.use_transform_pivot_point_align ^= True
+            context.scene.tool_settings.use_transform_pivot_point_align ^= True
 
         return {'FINISHED'}
 
@@ -1203,12 +1192,16 @@ class AUTOSMOOTH_PT_Menu(bpy.types.Panel):
             row.prop(context.scene, "checkboxnormals",
                      text="Recalculate Normals")
             if context.scene.checkboxnormals == True:
-                op = row.operator("toggle.normals_operator",
-                                  text="Normals OUT")
-                op.out_flip = True
-                op1 = row.operator("toggle.normals_operator",
-                                   icon='FILE_REFRESH', text='Flip')
-                op1.out_flip = False
+                # op = row.operator("toggle.normals_operator",
+                                  # text="Normals OUT")
+                # op.out_flip = True
+                # op1 = row.operator("toggle.normals_operator",
+                                   # icon='FILE_REFRESH', text='Flip')
+                # op1.out_flip = False
+                op=row.operator("mesh.normals_make_consistent", text="Normals OUT")
+                op.inside=False
+                row.operator("mesh.flip_normals", text="Flip", icon='FILE_REFRESH')
+
 
 #-----------------------------------------addon prefs-hotkey-reg-------------------------------------------#
 
