@@ -234,7 +234,7 @@ def set_xray_toggle(self, value):
 
 def update_xray_toggle(self, context):
 
-    context.space_data.overlay.show_face_orientation = False
+    # context.space_data.overlay.show_face_orientation = False
 
     if context.space_data.shading.type == 'WIREFRAME':
         context.space_data.shading.show_xray_wireframe = bool(self.show_xray)
@@ -349,7 +349,6 @@ class TOGGLE_OT_Normals(bpy.types.Operator):
 bpy.types.Scene.checkboxnormals = bpy.props.BoolProperty()  # for the panel
 
 # select/unselect
-
 
 def get_select(self):
 
