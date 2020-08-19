@@ -425,8 +425,9 @@ class NON_OT_MANIFOLD(bpy.types.Operator):
     def execute(self, context):
 
         bpy.ops.mesh.select_all(action='DESELECT')
-        context.tool_settings.mesh_select_mode = (False, True, False)
+        context.tool_settings.mesh_select_mode = (True, False, False)
         bpy.ops.mesh.select_non_manifold()
+        context.tool_settings.mesh_select_mode = (False, True, False)
         context.space_data.shading.type = 'WIREFRAME'
         context.space_data.shading.show_xray_wireframe = True
 
