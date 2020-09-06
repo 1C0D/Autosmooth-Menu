@@ -25,7 +25,7 @@ import bpy
 bl_info = {
     "name": " Autosmooth Menu",
     "author": "1COD",
-    "version": (1, 8, 5),
+    "version": (1, 8, 6),
     "blender": (2, 83, 0),
     "location": "View3D",
     "description": "Autosmooth menu, Alt X",
@@ -376,43 +376,6 @@ class VEF_OT_toggle(bpy.types.Operator):
             bpy.ops.mesh.select_mode(type='FACE')
         else:
             bpy.ops.mesh.select_mode(type='VERT')
-
-        return {'FINISHED'}
-
-
-# non manifold
-class NON_OT_MANIFOLD(bpy.types.Operator):
-    """select non manifold auto edge"""
-    bl_idname = "non.manifold"
-    bl_label = "select non manifold"
-
-    @classmethod
-    def poll(cls, context):
-        return context.active_object is not None
-
-    def execute(self, context):        
-   
-        context.tool_settings.mesh_select_mode = (False, True, False)
-
-        for obj in context.selected_objects:
-
-            me = obj.data
-            bm = bmesh.from_edit_mesh(me)
-            bm.select_mode = {'VERT'}
-            for v in bm.verts:
-                v.select = False
-            bm.select_flush_mode()   
-            me.update()
-            
-            bpy.ops.object.editmode_toggle()
-            bpy.ops.object.editmode_toggle()
-            
-            context.tool_settings.mesh_select_mode = (False, True, False)
-            bpy.ops.mesh.select_non_manifold()
-
-        context.space_data.shading.type = 'WIREFRAME'
-        context.space_data.shading.show_xray_wireframe = True
-
 
         return {'FINISHED'}
 
@@ -1044,7 +1007,7 @@ class AUTOSMOOTH_PT_Menu(bpy.types.Panel):
             icon = 'VERTEXSEL'if bpy.context.scene.tool_settings.mesh_select_mode[
                 0] else 'EDGESEL' if bpy.context.scene.tool_settings.mesh_select_mode[1] else 'FACESEL'
             row.operator("vef.toggle", text="", icon=icon)
-            row.operator("non.manifold", text="", icon='FILE_TICK')
+            row.operator("mesh.select_non_manifold", text='',icon='FILE_TICK')
 
             row = layout.row(align=True)
             row.prop(context.scene, "edge_mode", text="")
@@ -1353,7 +1316,6 @@ classes = (
     AUTOSMOOTH_PT_Menu,
     VEF_OT_toggle,
     UNMARK_OT_All,
-    NON_OT_MANIFOLD,
     REPEAT_OT_same_mark,
     ASM_addonPrefs,
     TEMPLATE_OT_Add_Hotkey,
