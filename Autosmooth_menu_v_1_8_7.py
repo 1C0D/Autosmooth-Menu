@@ -25,7 +25,7 @@ import bpy
 bl_info = {
     "name": " Autosmooth Menu",
     "author": "1COD",
-    "version": (1, 8, 7),
+    "version": (1, 8, 8),
     "blender": (2, 83, 0),
     "location": "View3D",
     "description": "Autosmooth menu, Alt X",
@@ -397,6 +397,54 @@ class VEF_OT_toggle(bpy.types.Operator):
             bpy.ops.mesh.select_mode(type='VERT')
 
         return {'FINISHED'}
+        
+#select NGONS
+class NGON_OT_select(bpy.types.Operator):
+    bl_idname = "ngons.select"
+    bl_label = "select Ngons"
+    
+    def execute(self, context):
+
+        cao = context.active_object
+        bm = bmesh.from_edit_mesh(cao.data)
+        bm.normal_update()
+
+        for f in bm.faces:
+            f.select = False
+        bm.select_flush(False)
+
+        faces = [f for f in bm.faces if len(f.verts) > 4]
+
+        for f in faces:
+            f.select = True
+
+        bmesh.update_edit_mesh(cao.data)
+        
+        return {'FINISHED'}
+
+
+class TRIS_OT_select(bpy.types.Operator):
+    bl_idname = "tris.select"
+    bl_label = "select Triangles"
+    
+    def execute(self, context):
+
+        cao = context.active_object
+        bm = bmesh.from_edit_mesh(cao.data)
+        bm.normal_update()
+
+        for f in bm.faces:
+            f.select = False
+        bm.select_flush(False)
+
+        faces = [f for f in bm.faces if len(f.verts) == 3]
+
+        for f in faces:
+            f.select = True
+
+        bmesh.update_edit_mesh(cao.data)
+        
+        return {'FINISHED'}
 
 
 # toggle shading
@@ -463,7 +511,7 @@ class UNMARK_OT_All(bpy.types.Operator): ###
                         if self.ex_seam:
                             if e.seam:
                                 e.seam = False
-       
+
                 bmesh.update_edit_mesh(me, False)
 
         return {'FINISHED'}
@@ -847,14 +895,14 @@ bpy.types.Scene.mark_type = bpy.props.EnumProperty(
 class REPEAT_OT_same_mark(bpy.types.Operator):
     bl_idname = "repeat.mark"
     bl_label = "repeat mark"
-    # bl_options = {'REGISTER', 'UNDO'}
+
     def execute(self,context):
         update_enum1(self, context)
         return {'FINISHED'}
 
 
-# show more love
-def show_more_love(self, context):
+# show more love  
+def show_more_love(self, context):  ##TO UPDATE  
     cao = bpy.context.active_object
 
     if context.scene.love:
@@ -1045,6 +1093,9 @@ class AUTOSMOOTH_PT_Menu(bpy.types.Panel):
             row.operator("vef.toggle", text="", icon=icon)
             row.operator_context="INVOKE_DEFAULT"
             row.operator("mesh.select_non_manifold", text='',icon='FILE_TICK')
+            row.operator("ngons.select", text='',icon='SEQ_CHROMA_SCOPE')
+            row.operator("tris.select", text='',icon='OUTLINER_OB_MESH')
+            
 
             row = layout.row(align=True)
             row.prop(context.scene, "edge_mode", text="")
@@ -1356,7 +1407,9 @@ classes = (
     REPEAT_OT_same_mark,
     ASM_addonPrefs,
     TEMPLATE_OT_Add_Hotkey,
-    TOGGLE_OT_Normals
+    TOGGLE_OT_Normals,
+    NGON_OT_select,
+    TRIS_OT_select
 )
 
 
