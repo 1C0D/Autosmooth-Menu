@@ -25,7 +25,7 @@ import bpy
 bl_info = {
     "name": " Autosmooth Menu",
     "author": "1COD",
-    "version": (1, 8, 6),
+    "version": (1, 8, 7),
     "blender": (2, 83, 0),
     "location": "View3D",
     "description": "Autosmooth menu, Alt X",
@@ -97,19 +97,31 @@ bpy.types.Scene.shadesmooth_toggle = bpy.props.BoolProperty(
 # Autosmooth
 def get_autosmooth(self):
 
-    return (bpy.context.object.data.use_auto_smooth)
+    for e in bpy.context.selected_objects:
+        if e.type == "MESH":
+            if e.data.use_auto_smooth == False:
+                return False
+    if len([obj for obj in bpy.context.selected_objects if obj.type == 'MESH']) == 0:
+        return False
+    return True     
 
 
 def set_autosmooth(self, value):
 
-    bpy.context.object.data.use_auto_smooth = value
+    for e in bpy.context.selected_objects:
+        if e.type == "MESH":
+            if e.data.use_auto_smooth == False:
+                e.data.use_auto_smooth = value
+            else:
+                list(bpy.context.selected_objects)[0].data.use_auto_smooth = value
 
 
 def update_autosmooth(self, context):
 
     for e in context.selected_objects:
+        if e.type == "MESH":
         # dont need to set if context.object because by default autosmooth do it
-        e.data.use_auto_smooth = bool(context.scene.autosmooth_toggle)
+            e.data.use_auto_smooth = bool(context.scene.autosmooth_toggle)
         
     if context.object.mode == 'SCULPT':
         
@@ -124,21 +136,28 @@ bpy.types.Scene.autosmooth_toggle = bpy.props.BoolProperty(
 
 # Autosmooth Angle
 def get_autosmoothangle(self):
-
-    return (round(degrees(bpy.context.object.data.auto_smooth_angle), 1))
+    
+    for e in bpy.context.selected_objects:
+        if e.type == "MESH":
+            return (round(degrees(e.data.auto_smooth_angle), 1))
+        else:
+            return 0
+    return True
 
 
 def set_autosmoothangle(self, value):
 
-    bpy.context.scene.Temp = value
+    if bpy.context.object and bpy.context.object.type == "MESH":
+        bpy.context.scene.Temp = value
 
 
 def update_autosmoothangle(self, context):
 
     for e in context.selected_objects:
-        e.data.auto_smooth_angle = radians(context.scene.Temp)
-    if context.object.data.auto_smooth_angle != radians(context.scene.Temp):
-        context.object.data.auto_smooth_angle = radians(context.scene.Temp)
+        if e.type == 'MESH':
+            e.data.auto_smooth_angle = radians(context.scene.Temp)
+            if e.data.auto_smooth_angle != radians(context.scene.Temp):
+                e.data.auto_smooth_angle = radians(context.scene.Temp)
 
 
 bpy.types.Scene.Temp = bpy.props.FloatProperty(
@@ -329,8 +348,8 @@ def get_select(self):
         return not len([v for v in mesh.verts if v.select]) == 0
 
     else:
+        return not len([obj for obj in bpy.context.selected_objects if obj.type == 'MESH']) == 0
 
-        return not len(bpy.context.selected_objects) == 0
 
 def set_select(self, value):
 
@@ -418,33 +437,34 @@ class UNMARK_OT_All(bpy.types.Operator): ###
     def execute(self, context):
 
         for obj in context.selected_objects:
-            me = obj.data
-            bm = bmesh.from_edit_mesh(me)
-            bv = bm.edges.layers.bevel_weight.verify()
-            cr = bm.edges.layers.crease.verify()
+            if obj.type == "MESH":
+                me = obj.data
+                bm = bmesh.from_edit_mesh(me)            
+                bv = bm.edges.layers.bevel_weight.verify()
+                cr = bm.edges.layers.crease.verify()
 
-            bm.select_mode = {'FACE'}
-            for e in bm.edges:
-                bm.select_mode = {'EDGE'}
-                if e.select == True:
-                    
-                    if self.ex_sharp:
-                        if not e.smooth:
-                            e.smooth = True
+                bm.select_mode = {'FACE'}
+                for e in bm.edges:
+                    bm.select_mode = {'EDGE'}
+                    if e.select == True:
+                        
+                        if self.ex_sharp:
+                            if not e.smooth:
+                                e.smooth = True
 
-                    if self.ex_bvl:                        
-                        if e[bv] > 0:
-                            e[bv] = 0
+                        if self.ex_bvl:                        
+                            if e[bv] > 0:
+                                e[bv] = 0
 
-                    if self.ex_crs:                        
-                        if e[cr] > 0:
-                            e[cr] = 0
+                        if self.ex_crs:                        
+                            if e[cr] > 0:
+                                e[cr] = 0
 
-                    if self.ex_seam:
-                        if e.seam:
-                            e.seam = False
-   
-            bmesh.update_edit_mesh(me, False)
+                        if self.ex_seam:
+                            if e.seam:
+                                e.seam = False
+       
+                bmesh.update_edit_mesh(me, False)
 
         return {'FINISHED'}
 
@@ -485,6 +505,7 @@ def update_sharpangle(self, context):
         if bpy.context.scene.sharpangle == 0 and context.scene.inverseur:
             bpy.ops.mesh.select_all(action='DESELECT')
 
+
 def selectsharpedge(self, context):
 
     bpy.ops.mesh.select_all(action='DESELECT')
@@ -492,6 +513,7 @@ def selectsharpedge(self, context):
         sharpness=radians(context.scene.sharpangle))
     if context.scene.inverseur:
         bpy.ops.mesh.select_all(action='INVERT')
+
 
 def update_inverseur(self, context):
 
@@ -506,6 +528,7 @@ def update_inverseur(self, context):
         update_markseam(self, context)
     if context.scene.mark_type=="none":
         selectsharpedge(self, context)
+
 
 def update_marksharp(self, context):
 
@@ -531,6 +554,7 @@ def update_markbevel(self, context):
             bpy.ops.mesh.select_all(action='INVERT')
         update_bevelWeight(self, context)
 
+
 def update_markcrease(self, context):
 
     if context.scene.mark_type=="crease":
@@ -555,37 +579,41 @@ def update_markseam(self, context):
             bpy.ops.mesh.select_all(action='INVERT')
         bpy.ops.mesh.mark_seam(clear=False)
 
+
 def update_bevelWeight(self, context):
 
-    for ob in context.selected_objects:
-        context.view_layer.objects.active = ob
-        me = ob.data
-        bm = bmesh.from_edit_mesh(me)
-        bv = bm.edges.layers.bevel_weight.verify()
-        
-        bm.select_mode = {'EDGE'}
-        for e in bm.edges:
-            if e.select == True:
-                e[bv] = context.scene.bevelWeight
+    for obj in context.selected_objects:
+        if obj.type == "MESH":
+            context.view_layer.objects.active = obj
+            me = obj.data
+            bm = bmesh.from_edit_mesh(me)
+            bv = bm.edges.layers.bevel_weight.verify()
+            
+            bm.select_mode = {'EDGE'}
+            for e in bm.edges:
+                if e.select == True:
+                    e[bv] = context.scene.bevelWeight
 
-        bmesh.update_edit_mesh(me)  # , False, False)
+            bmesh.update_edit_mesh(me)
+
 
 def update_edgeCrease(self, context):
 
-    for ob in context.selected_objects:
-        context.view_layer.objects.active = ob
-        me = ob.data
-        bm = bmesh.from_edit_mesh(me)
-        cr = bm.edges.layers.crease.verify()
-        sel=[]
-        
-        bm.select_mode = {'EDGE'}
-        for e in bm.edges:
-            if e.select == True:                
-                e[cr] = context.scene.edgeCrease
-                e.select = True
+    for obj in context.selected_objects:
+        if obj.type == "MESH":
+            context.view_layer.objects.active = obj
+            me = obj.data
+            bm = bmesh.from_edit_mesh(me)
+            cr = bm.edges.layers.crease.verify()
+            sel=[]
+            
+            bm.select_mode = {'EDGE'}
+            for e in bm.edges:
+                if e.select == True:                
+                    e[cr] = context.scene.edgeCrease
+                    e.select = True
 
-        bmesh.update_edit_mesh(me, False, False)
+            bmesh.update_edit_mesh(me, False, False)
 
 bpy.types.Scene.bevelWeight = bpy.props.FloatProperty(
     description="Set Bevel Weight",
@@ -619,28 +647,28 @@ def sel_bevel(self, context):
 
     if context.scene.mark_type=="bevel":
 
-        obj = bpy.context.object
         for obj in context.selected_objects:
-            me = obj.data
-            bm = bmesh.from_edit_mesh(me)
-            bv = bm.edges.layers.bevel_weight.verify()
+            if obj.type == "MESH":
+                me = obj.data
+                bm = bmesh.from_edit_mesh(me)
+                bv = bm.edges.layers.bevel_weight.verify()
 
-            bm.select_mode = {'FACE'}
-            for e in bm.edges:
-                bm.select_mode = {'EDGE'}
-                if context.scene.inverseur1 == False:
-                    if e[bv] >= context.scene.threshold_bevel_select and e[bv] > 0:
-                        e.select = True
+                bm.select_mode = {'FACE'}
+                for e in bm.edges:
+                    bm.select_mode = {'EDGE'}
+                    if context.scene.inverseur1 == False:
+                        if e[bv] >= context.scene.threshold_bevel_select and e[bv] > 0:
+                            e.select = True
+                        else:
+                            e.select = False
                     else:
-                        e.select = False
-                else:
-                    if e[bv] <= context.scene.threshold_bevel_select and e[bv] > 0:
-                        e.select = True
-                    else:
-                        e.select = False
+                        if e[bv] <= context.scene.threshold_bevel_select and e[bv] > 0:
+                            e.select = True
+                        else:
+                            e.select = False
 
 
-            bmesh.update_edit_mesh(me, False, False)
+                bmesh.update_edit_mesh(me, False, False)
 
 bpy.types.Scene.selbevel = bpy.props.BoolProperty(update=sel_bevel)
 
@@ -654,30 +682,33 @@ bpy.types.Scene.threshold_bevel_select = bpy.props.FloatProperty(
     update=sel_bevel
 )
 
+
 def sel_crease(self, context):
 
     if context.scene.mark_type=="crease":
 
         for obj in context.selected_objects:
-            me = obj.data
-            bm = bmesh.from_edit_mesh(me)
-            cr = bm.edges.layers.crease.verify()
+            if obj.type == "MESH":
+                me = obj.data
+                bm = bmesh.from_edit_mesh(me)
+                
+                cr = bm.edges.layers.crease.verify()
 
-            bm.select_mode = {'FACE'}
-            for e in bm.edges:
-                bm.select_mode = {'EDGE'}
-                if context.scene.inverseur1 == False:
-                    if e[cr] >= context.scene.threshold_crease_select and e[cr] > 0:
-                        e.select = True
+                bm.select_mode = {'FACE'}
+                for e in bm.edges:
+                    bm.select_mode = {'EDGE'}
+                    if context.scene.inverseur1 == False:
+                        if e[cr] >= context.scene.threshold_crease_select and e[cr] > 0:
+                            e.select = True
+                        else:
+                            e.select = False
                     else:
-                        e.select = False
-                else:
-                    if e[cr] <=  context.scene.threshold_crease_select and e[cr] > 0:
-                        e.select = True
-                    else:
-                        e.select = False
+                        if e[cr] <=  context.scene.threshold_crease_select and e[cr] > 0:
+                            e.select = True
+                        else:
+                            e.select = False
 
-            bmesh.update_edit_mesh(me, False, False)
+                bmesh.update_edit_mesh(me, False, False)
 
 bpy.types.Scene.selcrease = bpy.props.BoolProperty(
     update=sel_crease)
@@ -697,32 +728,36 @@ def sel_sharp(self, context):
     if context.scene.mark_type=="sharp":
 
         for obj in context.selected_objects:
-            me = obj.data
-            bm = bmesh.from_edit_mesh(me)
+            if obj.type == "MESH":
+                me = obj.data
+                bm = bmesh.from_edit_mesh(me)
 
-            for e in bm.edges:
-                if not e.smooth:
-                    e.select = True
+                for e in bm.edges:
+                    if not e.smooth:
+                        e.select = True
 
-            bmesh.update_edit_mesh(me, False)
+                bmesh.update_edit_mesh(me, False)
 
 bpy.types.Scene.selsharp = bpy.props.BoolProperty(update=sel_sharp)
+
 
 def sel_seam(self, context):
 
     if context.scene.mark_type=="seam":
 
         for obj in context.selected_objects:
-            me = obj.data
-            bm = bmesh.from_edit_mesh(me)
+            if obj.type == "MESH":
+                me = obj.data
+                bm = bmesh.from_edit_mesh(me)
 
-            for e in bm.edges:
-                if e.seam:
-                    e.select = True
+                for e in bm.edges:
+                    if e.seam:
+                        e.select = True
 
-            bmesh.update_edit_mesh(me, False)
+                bmesh.update_edit_mesh(me, False)
 
 bpy.types.Scene.selseam = bpy.props.BoolProperty(update=sel_seam)
+
 
 def update_inverseur1(self, context):
 
@@ -741,6 +776,7 @@ edge_mode = [
     ("3", "Select Marked Edg", "Get selection of Marked edges"),
     ("2", "Mark Selected", "Mark selection"),
 ]
+
 
 def update_enum(self, context):
     
@@ -761,6 +797,7 @@ mark_type = [
     ("crease", "Crease", "Crease"),
     ("seam", "Seam", "Seam")    
 ]
+
 
 def update_enum1(self, context):
 
@@ -886,15 +923,14 @@ class AUTOSMOOTH_PT_Menu(bpy.types.Panel):
     bl_context = "0data"  # not valid name to hide it
     bl_options = {'DEFAULT_CLOSED'}
     
-    @classmethod
-    def poll(cls, context):
-        return context.object and bpy.context.selected_objects
+    # @classmethod
+    # def poll(cls, context):
+        # return context.object and bpy.context.selected_objects
 
     def draw(self, context):
         layout = self.layout
-        obj = context.object
 
-        if obj.mode in {'OBJECT'}:
+        if context.mode in {'OBJECT'}:
             obj_data = context.active_object.data
             row = layout.row()
             row.label(text="Object Mode")
@@ -946,7 +982,7 @@ class AUTOSMOOTH_PT_Menu(bpy.types.Panel):
                                    icon='FILE_REFRESH', text="")
                 op1.out_flip = False
 
-        elif obj.mode in {'SCULPT'}:
+        elif context.mode in {'SCULPT'}:
             obj_data = context.active_object.data
             layout.label(text="Sculpt Mode")
             label = "Shade Smooth ON" if context.scene.shadesmooth_toggle else "Shade Smooth OFF"
@@ -1007,6 +1043,7 @@ class AUTOSMOOTH_PT_Menu(bpy.types.Panel):
             icon = 'VERTEXSEL'if bpy.context.scene.tool_settings.mesh_select_mode[
                 0] else 'EDGESEL' if bpy.context.scene.tool_settings.mesh_select_mode[1] else 'FACESEL'
             row.operator("vef.toggle", text="", icon=icon)
+            row.operator_context="INVOKE_DEFAULT"
             row.operator("mesh.select_non_manifold", text='',icon='FILE_TICK')
 
             row = layout.row(align=True)
