@@ -25,7 +25,7 @@ import bpy
 bl_info = {
     "name": " Autosmooth Menu",
     "author": "1COD",
-    "version": (1, 8, 8),
+    "version": (1, 9, 0),
     "blender": (2, 83, 0),
     "location": "View3D",
     "description": "Autosmooth menu, Alt X",
@@ -902,59 +902,82 @@ class REPEAT_OT_same_mark(bpy.types.Operator):
 
 
 # show more love  
-def show_more_love(self, context):  ##TO UPDATE  
+def show_more_love(self, context):
     cao = bpy.context.active_object
 
     if context.scene.love:
+        if cao and cao.type == 'MESH':
+            if len([m for m in bpy.context.object.modifiers if m.type == "BEVEL"]) < 1:
+                bpy.ops.object.modifier_add(type='BEVEL')
+                bpy.context.object.modifiers["Bevel"].width = 0.04
+                bpy.context.object.modifiers["Bevel"].segments = 1
+                bpy.context.object.modifiers["Bevel"].limit_method = 'WEIGHT'
+                bpy.context.object.modifiers["Bevel"].offset_type = 'ABSOLUTE'
+                bpy.context.object.modifiers["Bevel"].use_clamp_overlap = False
+                bpy.context.object.modifiers["Bevel"].harden_normals = True
 
-        if len([m for m in bpy.context.object.modifiers if m.type == "BEVEL"]) < 1:
-            bpy.ops.object.modifier_add(type='BEVEL')
-            bpy.context.object.modifiers["Bevel"].limit_method = 'WEIGHT'
-            bpy.context.object.modifiers["Bevel"].segments = 1
-            bpy.context.object.modifiers["Bevel"].miter_outer = 'MITER_PATCH'
+            mod=bpy.context.object.mode           
+            if mod=='OBJECT':
+                bpy.ops.object.transform_apply(
+                location=False, rotation=False, scale=True)
+                bpy.ops.object.mode_set(mode='EDIT')
 
-        if len([m for m in bpy.context.object.modifiers if m.type == "SUBSURF"]) < 1:
-            bpy.ops.object.modifier_add(type='SUBSURF')
-            bpy.context.object.modifiers["Subdivision"].show_on_cage = True
+            bpy.ops.mesh.select_all(action='DESELECT')
+            mesh = bmesh.from_edit_mesh(bpy.context.active_object.data)
+            for v in mesh.faces:
+                v.select = True
+            bpy.ops.mesh.faces_shade_smooth()
+            bpy.ops.mesh.select_all(action='DESELECT')
+            bpy.context.tool_settings.mesh_select_mode = (False, True, False)
+            bpy.ops.mesh.edges_select_sharp(sharpness=0.523599)
+            
+            # context.view_layer.objects.active = obj
+            me = cao.data
+            bm = bmesh.from_edit_mesh(me)
+            bv = bm.edges.layers.bevel_weight.verify()            
+            # bm.select_mode = {'EDGE'}
+            for e in bm.edges:
+                if e.select == True:
+                    e[bv] = 1
 
-        bpy.ops.mesh.select_all(action='DESELECT')
-        mesh = bmesh.from_edit_mesh(bpy.context.active_object.data)
-        for v in mesh.faces:
-            v.select = True
-        bpy.ops.mesh.faces_shade_smooth()
-        bpy.ops.mesh.select_all(action='DESELECT')
-        bpy.ops.mesh.select_mode('EXEC_DEFAULT', type='VERT')
-        bpy.context.scene.sharpangle = 9.57447
-        bpy.context.scene.markbevel = True
+            bmesh.update_edit_mesh(me)
 
-        if bpy.context.scene.autosmooth_toggle == False:
             bpy.context.scene.autosmooth_toggle = True
-        bpy.context.object.data.auto_smooth_angle = 0.767546
-
-        bpy.ops.object.editmode_toggle()
-        bpy.ops.object.transform_apply(
-            location=False, rotation=False, scale=True)
-        bpy.ops.object.editmode_toggle()
-        if bpy.context.space_data.overlay.show_overlays == True:
-            bpy.context.space_data.overlay.show_overlays = False
-        bpy.context.scene.objects.active = bpy.context.scene.objects.active
+            bpy.context.scene.autosmoothangle = 30
+            if mod=='EDIT':
+                bpy.ops.object.editmode_toggle()
+                bpy.ops.object.transform_apply(
+                    location=False, rotation=False, scale=True)
+                bpy.ops.object.editmode_toggle()
+                if bpy.context.space_data.overlay.show_overlays == True:
+                    bpy.context.space_data.overlay.show_overlays = False
+            # bpy.context.scene.objects.active = bpy.context.scene.objects.active
+            else:
+                bpy.ops.object.mode_set(mode='OBJECT')
 
     else:
-
-        bpy.ops.object.modifier_remove(modifier="Subdivision")
-        bpy.ops.object.modifier_remove(modifier="Bevel")
-        bpy.ops.mesh.select_mode('EXEC_DEFAULT', type='FACE')
-        bpy.ops.mesh.select_all(action='SELECT')
-        bpy.ops.mesh.faces_shade_flat()
-        bpy.ops.mesh.mark_sharp(clear=True)
-        bpy.ops.transform.edge_bevelweight(value=-1)
-        bpy.ops.transform.edge_crease(value=-1)
-        if context.scene.inverseur == True:
-            context.scene.inverseur = False
-        if bpy.context.space_data.overlay.show_overlays == False:
-            bpy.context.space_data.overlay.show_overlays = True
-        bpy.context.object.data.auto_smooth_angle = 3.14159
+        mod=bpy.context.object.mode           
+        if mod=='OBJECT':
+            bpy.ops.object.mode_set(mode='EDIT')
+        
+        if len([m for m in bpy.context.object.modifiers if m.type == "BEVEL"]):
+            bpy.ops.object.modifier_remove(modifier="Bevel")
         bpy.ops.mesh.select_all(action='DESELECT')
+        bpy.context.tool_settings.mesh_select_mode = (False, True, False)
+        bpy.ops.mesh.edges_select_sharp(sharpness=0.523599)
+        me = cao.data
+        bm = bmesh.from_edit_mesh(me)
+        bv = bm.edges.layers.bevel_weight.verify()            
+        # bm.select_mode = {'EDGE'}
+        for e in bm.edges:
+            if e.select == True:
+                e[bv] = -1
+        bmesh.update_edit_mesh(me)
+        if bpy.context.space_data.overlay.show_overlays == False:
+            bpy.context.space_data.overlay.show_overlays = True    
+        bpy.ops.mesh.select_all(action='DESELECT')
+        if mod=='OBJECT':
+            bpy.ops.object.mode_set(mode=(mod)) 
 
 
 bpy.types.Scene.love = bpy.props.BoolProperty(
@@ -983,6 +1006,7 @@ class AUTOSMOOTH_PT_Menu(bpy.types.Panel):
             row = layout.row()
             row.label(text="Object Mode")
             row.scale_y = 0.8
+            row.prop(context.scene, "love", text="", icon='HEART')
             row.operator("object.editmode_toggle",
                          text="", icon='ARROW_LEFTRIGHT')
             row = layout.row(align=True)
